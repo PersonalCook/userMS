@@ -1,0 +1,38 @@
+version: "3.9"
+
+services:
+  user_service_db:
+    image: postgres:14-alpine
+    environment:
+      POSTGRES_DB: users
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    volumes:
+      - user_service_db_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    networks:
+      - personalcook_net
+
+  user_service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    environment:
+      DATABASE_URL: postgresql://postgres:postgres@user_service_db:5432/users
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_ALGORITHM: ${JWT_ALGORITHM}
+    depends_on:
+      - user_service_db
+    ports:
+      - "8000:8000"
+    networks:
+      - personalcook_net
+
+volumes:
+  user_service_db_data:
+
+networks:
+  personalcook_net:
+    external: true
+    name: personalcook-net
