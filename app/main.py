@@ -27,5 +27,7 @@ def root():
     return {"msg": "User Service running!"}
 
 
-
+@app.get("/health")
+def health():
+    return {"status": "ok"}
 
