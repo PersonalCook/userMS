@@ -7,3 +7,4 @@ PyJWT
 pydantic
 python-dotenv
 pydantic[email]
+httpx
