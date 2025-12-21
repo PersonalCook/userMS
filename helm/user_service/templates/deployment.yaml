@@ -64,18 +64,18 @@ spec:
 
           livenessProbe:
             httpGet:
-              path: /docs
+              path: /health
               port: 8000
             initialDelaySeconds: 20
             periodSeconds: 10
 
           readinessProbe:
             httpGet:
-              path: /docs
+              path: /health
               port: 8000
             initialDelaySeconds: 10
             periodSeconds: 10
-
+  
           volumeMounts:
             - name: media
               mountPath: /app/media
