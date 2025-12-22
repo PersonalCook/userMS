@@ -1,0 +1,8 @@
+from prometheus_client import Counter, Histogram, Gauge
+
+num_requests = Counter("http_requests_total", "Total number of HTTP requests", ["method", "endpoint", "status_code"])
+num_errors = Counter("http_request_errors_total", "Total number of HTTP request errors", ["method", "endpoint", "status_code"])
+request_latency = Histogram("http_request_latency_seconds", "HTTP request latency in seconds",  ["method", "endpoint"])
+requests_in_progress = Gauge("http_requests_in_progress", "Number of HTTP requests in progress")
+user_registrations = Counter("user_registrations_total", "Total number of user registrations", ["source", "status"])
+user_logins = Counter("user_logins_total", "Total number of user logins", ["source", "status"])

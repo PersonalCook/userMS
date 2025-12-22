@@ -8,3 +8,4 @@ pydantic
 python-dotenv
 pydantic[email]
 httpx
+prometheus-client
