@@ -12,6 +12,30 @@ security = HTTPBearer()
 
 router = APIRouter(prefix="/profile", tags=["Profile"])
 
+EXAMPLE_PROFILE = {
+    "user_id": 1,
+    "email": "ana@example.com",
+    "username": "ana",
+    "public_name": "Ana",
+    "birthdate": "1999-01-01",
+}
+
+ERROR_401 = {
+    "model": schemas.ErrorResponse,
+    "description": "Unauthorized",
+    "content": {"application/json": {"example": {"detail": "Invalid or expired token"}}},
+}
+ERROR_404 = {
+    "model": schemas.ErrorResponse,
+    "description": "Not found",
+    "content": {"application/json": {"example": {"detail": "User not found"}}},
+}
+ERROR_500 = {
+    "model": schemas.ErrorResponse,
+    "description": "Internal error",
+    "content": {"application/json": {"example": {"detail": "Internal server error"}}},
+}
+
 
 def get_db():
     db = SessionLocal()
@@ -30,7 +54,18 @@ def get_current_user(credentials: HTTPAuthorizationCredentials = Security(securi
     except:
         raise HTTPException(status_code=401, detail="Invalid or expired token")
 
-@router.get("/", response_model=schemas.UserProfile)
+@router.get(
+    "/",
+    response_model=schemas.UserProfile,
+    summary="Get my profile",
+    responses={
+        200: {"description": "OK", "content": {"application/json": {"example": EXAMPLE_PROFILE}}},
+        401: ERROR_401,
+        404: ERROR_404,
+        422: {"description": "Validation error"},
+        500: ERROR_500,
+    },
+)
 def get_profile(
     user_id: int = Depends(get_current_user),
     db: Session = Depends(get_db),
@@ -49,7 +84,18 @@ def get_profile(
     return user
 
 
-@router.delete("/", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete(
+    "/",
+    status_code=status.HTTP_204_NO_CONTENT,
+    summary="Delete my profile",
+    responses={
+        204: {"description": "Deleted"},
+        401: ERROR_401,
+        404: ERROR_404,
+        422: {"description": "Validation error"},
+        500: ERROR_500,
+    },
+)
 def delete_profile(
     user_id: int = Depends(get_current_user),
     db: Session = Depends(get_db),

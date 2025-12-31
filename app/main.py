@@ -13,6 +13,7 @@ from .metrics import (
     request_latency,
     requests_in_progress
 )
+from .schemas import RootResponse, HealthResponse
 
 auth_scheme = HTTPBearer()
 
@@ -55,17 +56,40 @@ async def metrics_middleware(request: Request, call_next):
     finally:
         requests_in_progress.dec()
 
-@app.get("/metrics")
+@app.get(
+    "/metrics",
+    summary="Prometheus metrics",
+    responses={
+        200: {"description": "OK", "content": {"text/plain": {"example": "# HELP ..."}}}
+    },
+)
 def metrics():
     return Response(generate_latest(), media_type=CONTENT_TYPE_LATEST)
  
 
-@app.get("/")
+@app.get(
+    "/",
+    response_model=RootResponse,
+    summary="Service info",
+    responses={
+        200: {
+            "description": "OK",
+            "content": {"application/json": {"example": {"msg": "User Service running!"}}},
+        }
+    },
+)
 def root():
     return {"msg": "User Service running!"}
 
 
-@app.get("/health")
+@app.get(
+    "/health",
+    response_model=HealthResponse,
+    summary="Health check",
+    responses={
+        200: {"description": "OK", "content": {"application/json": {"example": {"status": "ok"}}}}
+    },
+)
 def health():
     return {"status": "ok"}
 

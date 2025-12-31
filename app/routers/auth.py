@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, Response
+from fastapi import APIRouter, Depends, HTTPException, Response, Body
 from sqlalchemy.orm import Session
 from ..database import SessionLocal
 from .. import models, schemas
@@ -10,6 +10,17 @@ from ..metrics import (
 
 router = APIRouter(prefix="/auth")
 
+ERROR_400 = {
+    "model": schemas.ErrorResponse,
+    "description": "Bad request",
+    "content": {"application/json": {"example": {"detail": "Email exists"}}},
+}
+ERROR_502 = {
+    "model": schemas.ErrorResponse,
+    "description": "Upstream error",
+    "content": {"application/json": {"example": {"detail": "Database unavailable"}}},
+}
+
 def get_db():
     db = SessionLocal()
     try:
@@ -18,8 +29,33 @@ def get_db():
         db.close()
 
 
-@router.post("/register")
-def register(user: schemas.UserCreate, db: Session = Depends(get_db)):
+@router.post(
+    "/register",
+    response_model=schemas.RegisterResponse,
+    summary="Register user",
+    responses={
+        200: {"description": "OK", "content": {"application/json": {"example": {"msg": "User created"}}}},
+        400: ERROR_400,
+        422: {"description": "Validation error"},
+        502: ERROR_502,
+    },
+)
+def register(
+    user: schemas.UserCreate = Body(
+        ...,
+        examples={
+            "example": {
+                "value": {
+                    "email": "ana@example.com",
+                    "password": "secret123",
+                    "username": "ana",
+                    "public_name": "Ana",
+                }
+            }
+        },
+    ),
+    db: Session = Depends(get_db),
+):
     status_ = "success"
     try:
         existing_email = db.query(models.User).filter(models.User.email == user.email).first()
@@ -52,8 +88,27 @@ def register(user: schemas.UserCreate, db: Session = Depends(get_db)):
     finally:
         user_registrations.labels(source="api", status=status_).inc()
 
-@router.post("/login")
-def login(user: schemas.UserLogin, db: Session = Depends(get_db)):
+@router.post(
+    "/login",
+    response_model=schemas.LoginResponse,
+    summary="Login",
+    responses={
+        200: {
+            "description": "OK",
+            "content": {"application/json": {"example": {"access_token": "jwt", "user_id": 1}}},
+        },
+        400: ERROR_400,
+        422: {"description": "Validation error"},
+        502: ERROR_502,
+    },
+)
+def login(
+    user: schemas.UserLogin = Body(
+        ...,
+        examples={"example": {"value": {"email": "ana@example.com", "password": "secret123"}}},
+    ),
+    db: Session = Depends(get_db),
+):
 
     status_ = "success"
     try:

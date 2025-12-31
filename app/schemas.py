@@ -41,3 +41,31 @@ class UserUpdate(BaseModel):
     username: str | None = None
     public_name: str | None = None
     birthdate: date | None = None
+
+
+class ErrorResponse(BaseModel):
+    detail: str
+
+
+class RootResponse(BaseModel):
+    msg: str
+
+
+class HealthResponse(BaseModel):
+    status: str
+
+
+class RegisterResponse(BaseModel):
+    msg: str
+
+
+class LoginResponse(BaseModel):
+    access_token: str
+    user_id: int
+
+
+class UserSummary(BaseModel):
+    user_id: int
+    username: str
+    public_name: str | None
+    email: EmailStr
