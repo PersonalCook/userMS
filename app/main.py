@@ -18,7 +18,12 @@ import os
 
 auth_scheme = HTTPBearer()
 
-app = FastAPI(title="User Service")
+ROOT_PATH = os.getenv("ROOT_PATH", "").rstrip("/")
+
+app = FastAPI(
+    title="User Service",
+    root_path=ROOT_PATH,
+)
 
 CORS_ORIGINS = os.getenv("CORS_ORIGINS", "http://localhost:5173")
 allow_origins = [o.strip() for o in CORS_ORIGINS.split(",") if o.strip()]

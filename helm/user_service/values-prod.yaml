@@ -1,0 +1,71 @@
+replicaCount: 1
+
+image:
+  repository: piasotlar/user_service
+  tag: v21
+  pullPolicy: IfNotPresent
+
+containerPort: 8000
+
+serviceAccount:
+  create: false
+  name: ""
+
+service:
+  type: ClusterIP
+  port: 8000
+
+
+config:
+  JWT_ALGORITHM: "HS256"
+  CORS_ORIGINS: "http://134.112.152.8"
+
+
+secretEnvFrom:
+  enabled: false
+  name: app-secrets
+
+
+env:
+  - name: DATABASE_URL
+    valueFrom:
+      secretKeyRef:
+        name: user-service-db
+        key: DATABASE_URL
+
+  - name: JWT_SECRET
+    valueFrom:
+      secretKeyRef:
+        name: app-secrets
+        key: jwt-secret
+  - name: ROOT_PATH
+    value: "/api/user"
+
+
+livenessProbe:
+  httpGet:
+    path: /health
+  initialDelaySeconds: 20
+  periodSeconds: 10
+
+readinessProbe:
+  httpGet:
+    path: /health
+  initialDelaySeconds: 10
+  periodSeconds: 10
+
+resources: {}
+
+serviceMonitor:
+  enabled: true
+  namespace: monitoring
+  labels:
+    release: monitoring
+  path: /metrics
+  interval: 15s
+
+podAnnotations: {}
+imagePullSecrets: []
+nodeSelector: {}
+tolerations: []
+affinity: {}
