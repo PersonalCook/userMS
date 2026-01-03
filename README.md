@@ -2,39 +2,136 @@
 
 User service for PersonalCook.
 
+---
+
 ## Overview
 UserMS provides authentication and user profile management for PersonalCook. It handles registration, login (JWT), profile access, and user lookup/search for other services.
 
-## Architecture
-- FastAPI service with PostgreSQL storage.
-- JWT-based auth for protected endpoints.
-- Exposes user lookup endpoints for other microservices.
+---
 
-## Local dev
+## Architecture
+
+- **FastAPI** application
+- **Elasticsearch** for indexing and retrieval
+- **JWT-based auth** 
+- **Prometheus / Grafana** for metrics and monitoring
+- **EFK stack (Fluent Bit, Elasticsearch, Kibana)** for centralized logging
+
+---
+
+## Configuration
+
+The application configuration is fully separated from the implementation and is provided via multiple sources:
+
+1. **Kubernetes ConfigMap**
+   - Non-sensitive configuration injected as environment variables (and optionally as a mounted config file).
+2. **Kubernetes Secrets**
+   - Sensitive values such as JWT secret and database url.
+3. **Helm values**
+   - All configuration values are parameterized via Helm `values.yaml` files.
+
+---
+
+## Environment Variables
+
+| Variable               | Description                    |
+| ---------------------- | ------------------------------ |
+| DATABASE_URL             | PostgreSQL connection string   |
+| JWT_SECRET             | JWT signing secret             |
+| JWT_ALGORITHM          | JWT algorithm (default: HS256) |
+
+---
+## Local development
+
+- Configuration via `.env` file (see `.env.example`)
+- API available at: `http://localhost:8000`
+- PostgreSQL exposed on: `localhost:5432`
+
 1. docker network create personalcook-net
 2. copy .env.example .env
 3. docker compose up --build
 
-## Configuration
-Environment variables (see `.env.example`):
-- `DATABASE_URL`: Postgres connection string.
-- `JWT_SECRET`: secret used to sign tokens.
-- `JWT_ALGORITHM`: JWT signing algorithm (e.g. HS256).
+---
 
-## Ports
-- API: 8000
-- Postgres: 5432
+## Kubernetes
+
+- Configuration via Helm values, ConfigMaps, and Secrets
+- API exposed through reverse proxy: http://134.112.152.8/api/user/
+- Observability via `/metrics` endpoint
+
+Separate Helm values files are used:
+
+- `values-dev.yaml`
+- `values-prod.yaml`
+
+Example deployments:
+helm upgrade --install user-service . -n personalcook -f values-prod.yaml
+
+---
+
+## Observability & Logging
+
+The Recipe Service is integrates with a centralized logging and monitoring stack.
+
+### Logging (EFK stack)
+
+Application logs are written to stdout and collected at the Kubernetes level using:
+
+- **Fluent Bit** – log collection and forwarding
+- **Elasticsearch** – centralized log storage and indexing
+- **Kibana** – log visualization and analysis
+
+### Metrics & Monitoring
+
+The service exposes Prometheus-compatible metrics at: /metrics
+
+Metrics are scraped using:
+
+- **Prometheus Operator** via a `ServiceMonitor`
+- Visualized in **Grafana**
+
+#### Exposed metrics
+
+- **`http_requests_total`** _(Counter)_  
+  Total number of HTTP requests.  
+  **Labels:** `method`, `endpoint`, `status_code`
+
+- **`http_request_errors_total`** _(Counter)_  
+  Total number of failed HTTP requests (error responses).  
+  **Labels:** `method`, `endpoint`, `status_code`
+
+- **`http_request_latency_seconds`** _(Histogram)_  
+  HTTP request latency distribution (seconds).  
+  **Labels:** `method`, `endpoint`
+
+- **`http_requests_in_progress`** _(Gauge)_  
+  Number of HTTP requests currently being processed.
+
+- **`user_registrations_total`** (Counter)  
+  Total number of user registrations.  
+  Labels: `source`, `status`
+
+- **`user_logins_total`** (Counter)  
+  Total number of user logins.  
+  Labels: `source`, `status`
+
+---
 
 ## API Docs
-- Swagger UI: http://localhost:8000/docs
-- ReDoc: http://localhost:8000/redoc
-- OpenAPI JSON: http://localhost:8000/openapi.json
+
+- Swagger UI: http://134.112.152.8/api/user/docs
+- ReDoc: http://134.112.152.8/api/user/redoc
+- OpenAPI JSON: http://134.112.152.8/api/user/openapi.json
+
+---
 
 ## Testing
 Run tests locally:
 ```
 pytest
 ```
+
+---
 
 ## CI
 This repo runs two GitHub Actions jobs:
@@ -44,10 +141,7 @@ This repo runs two GitHub Actions jobs:
 Tests (files and intent):
 - `tests/test_user_routes.py`: register/login flow and user search/lookups.
 
-## Deployment
-- Docker image and Helm chart are provided for deployment.
-- Health check: `GET /health`.
-- Metrics: `GET /metrics` (Prometheus format).
+---
 
 ## Troubleshooting
 - `JWT_SECRET` or `JWT_ALGORITHM` missing: auth endpoints will fail.
