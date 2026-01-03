@@ -2,7 +2,7 @@ replicaCount: 1
 
 image:
   repository: piasotlar/user_service
-  tag: latest
+  tag: v15
   pullPolicy: IfNotPresent
 
 containerPort: 8000

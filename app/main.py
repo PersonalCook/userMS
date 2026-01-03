@@ -14,17 +14,21 @@ from .metrics import (
     requests_in_progress
 )
 from .schemas import RootResponse, HealthResponse
+import os
 
 auth_scheme = HTTPBearer()
 
 app = FastAPI(title="User Service")
 
+CORS_ORIGINS = os.getenv("CORS_ORIGINS", "http://localhost:5173")
+allow_origins = [o.strip() for o in CORS_ORIGINS.split(",") if o.strip()]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],     
+    allow_origins=allow_origins,
     allow_credentials=True,
-    allow_methods=["*"],      
-    allow_headers=["*"],      
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 models.Base.metadata.create_all(bind=engine)
