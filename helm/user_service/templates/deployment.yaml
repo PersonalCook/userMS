@@ -1,57 +1,78 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: user-service
-  namespace: personalcook
+  name: {{ include "user_service.fullname" . }}
   labels:
-    app.kubernetes.io/name: user_service
-    app.kubernetes.io/instance: user-service
+    {{- include "user_service.labels" . | nindent 4 }}
 spec:
-  replicas: 1
+  replicas: {{ .Values.replicaCount }}
   selector:
     matchLabels:
-      app.kubernetes.io/name: user_service
-      app.kubernetes.io/instance: user-service
+      {{- include "user_service.selectorLabels" . | nindent 6 }}
   template:
     metadata:
       labels:
-        app.kubernetes.io/name: user_service
-        app.kubernetes.io/instance: user-service
+        {{- include "user_service.selectorLabels" . | nindent 8 }}
+      {{- with .Values.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
     spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+
+      serviceAccountName: {{ include "user_service.serviceAccountName" . }}
+
       containers:
-        - name: user-service
+        - name: {{ include "user_service.name" . }}
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
           imagePullPolicy: {{ .Values.image.pullPolicy | default "IfNotPresent" }}
+
           ports:
             - name: http
-              containerPort: 8000
+              containerPort: {{ .Values.containerPort }}
               protocol: TCP
+
+
+          envFrom:
+            - configMapRef:
+                name: {{ include "user_service.fullname" . }}-config
+            {{- if .Values.secretEnvFrom.enabled }}
+            - secretRef:
+                name: {{ .Values.secretEnvFrom.name }}
+            {{- end }}
+
           env:
-            - name: DATABASE_URL
-              valueFrom:
-                secretKeyRef:
-                  name: user-service-db     
-                  key: DATABASE_URL
-
-            - name: JWT_SECRET
-              valueFrom:
-                secretKeyRef:
-                  name: app-secrets
-                  key: jwt-secret
-
-            - name: JWT_ALGORITHM
-              value: HS256
+            {{- toYaml .Values.env | nindent 12 }}
 
           livenessProbe:
             httpGet:
-              path: /health
-              port: 8000
-            initialDelaySeconds: 20
-            periodSeconds: 10
+              path: {{ .Values.livenessProbe.httpGet.path }}
+              port: http
+            initialDelaySeconds: {{ .Values.livenessProbe.initialDelaySeconds }}
+            periodSeconds: {{ .Values.livenessProbe.periodSeconds }}
 
           readinessProbe:
             httpGet:
-              path: /health
-              port: 8000
-            initialDelaySeconds: 10
-            periodSeconds: 10
+              path: {{ .Values.readinessProbe.httpGet.path }}
+              port: http
+            initialDelaySeconds: {{ .Values.readinessProbe.initialDelaySeconds }}
+            periodSeconds: {{ .Values.readinessProbe.periodSeconds }}
+
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
